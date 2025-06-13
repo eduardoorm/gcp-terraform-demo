@@ -1,5 +1,5 @@
 steps:
-  # Paso 1: Verificar si el bucket ya existe
+  # Paso 1: Verificar si el bucket ya existe.
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: sh
     args:

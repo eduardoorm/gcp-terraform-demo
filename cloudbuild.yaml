@@ -1,18 +1,23 @@
 steps:
-  - name: hashicorp/terraform:1.9.5
-    entrypoint: sh
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk  # tiene gcloud + gsutil
+    entrypoint: bash
     args:
       - -c
       - |
         cd terraform
         terraform init
 
-        # Verifica si el bucket ya existe en GCP
         if gsutil ls -b gs://${_BUCKET_NAME} >/dev/null 2>&1; then
           echo "Bucket ya existe. Importando a Terraform..."
-          terraform import google_storage_bucket.static_site ${_BUCKET_NAME} || true
+          terraform import google_storage_bucket.static_site ${_BUCKET_NAME} || echo "Ya estaba importado"
         fi
 
+  - name: hashicorp/terraform:1.9.5
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        cd terraform
         terraform apply -auto-approve \
           -var="project_id=${_PROJECT_ID}" \
           -var="region=${_REGION}" \

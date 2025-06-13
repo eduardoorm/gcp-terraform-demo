@@ -1,34 +1,39 @@
-options:
-  volumes:
-    - name: terraform-state
-      path: /workspace/terraform
-      
 steps:
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk  # solo para verificar
+  # Paso 1: Verificar si el bucket ya existe
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: sh
     args:
       - -c
       - |
         if gsutil ls -b gs://${_BUCKET_NAME} >/dev/null 2>&1; then
-          echo "Bucket ya existe"
-          echo "${_BUCKET_NAME}" > existing_bucket.txt
+          echo "Bucket ya existe. Guardando estado..."
+          echo "${_BUCKET_NAME}" > /workspace/terraform/existing_bucket.txt
         fi
+    volumeMounts:
+      - name: terraform-cache
+        path: /workspace/terraform
 
+  # Paso 2: Ejecutar Terraform (init, import si aplica, apply)
   - name: hashicorp/terraform:1.9.5
     entrypoint: sh
     args:
       - -c
       - |
-        cd terraform
+        cd /workspace/terraform
         terraform init
-        if [ -f ../existing_bucket.txt ]; then
+        if [ -f existing_bucket.txt ]; then
+          echo "Importando bucket existente a Terraform..."
           terraform import google_storage_bucket.static_site ${_BUCKET_NAME}
         fi
         terraform apply -auto-approve \
           -var="project_id=${_PROJECT_ID}" \
           -var="region=${_REGION}" \
           -var="bucket_name=${_BUCKET_NAME}"
+    volumeMounts:
+      - name: terraform-cache
+        path: /workspace/terraform
 
+  # Paso 3: Subir los archivos estáticos al bucket
   - name: gcr.io/cloud-builders/gsutil
     args:
       - -m
@@ -36,3 +41,14 @@ steps:
       - -r
       - site
       - gs://${_BUCKET_NAME}
+
+substitutions:
+  _PROJECT_ID: "proyecto-taller-github"
+  _REGION: "us-central1"
+  _BUCKET_NAME: "demo-web-estatica"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  volumes:
+    - name: terraform-cache
+      path: /workspace/terraform

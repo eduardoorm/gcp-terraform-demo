@@ -1,7 +1,7 @@
 steps:
   - name: hashicorp/terraform:1.9.5
     entrypoint: sh
-    args:Add commentMore actions
+    args:
       - -c
       - |
         cd terraform
@@ -26,5 +26,3 @@ substitutions:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
-#pasos

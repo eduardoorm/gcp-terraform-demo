@@ -1,5 +1,5 @@
 steps:
-  # Paso 1: Verificar si el bucket ya existe.
+  # Paso 1: Verificar si el bucket ya existe
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: sh
     args:
@@ -7,21 +7,18 @@ steps:
       - |
         if gsutil ls -b gs://${_BUCKET_NAME} >/dev/null 2>&1; then
           echo "Bucket ya existe. Guardando estado..."
-          echo "${_BUCKET_NAME}" > /workspace/terraform/existing_bucket.txt
+          echo "EXISTS" > /workspace/bucket_exists.flag
         fi
-    volumeMounts:
-      - name: terraform-cache
-        path: /workspace/terraform
 
-  # Paso 2: Ejecutar Terraform (init, import si aplica, apply)
+  # Paso 2: Ejecutar Terraform (init, import si existe, apply)
   - name: hashicorp/terraform:1.9.5
     entrypoint: sh
     args:
       - -c
       - |
-        cd /workspace/terraform
+        cd terraform
         terraform init
-        if [ -f existing_bucket.txt ]; then
+        if [ -f /workspace/bucket_exists.flag ]; then
           echo "Importando bucket existente a Terraform..."
           terraform import google_storage_bucket.static_site ${_BUCKET_NAME}
         fi
@@ -29,9 +26,6 @@ steps:
           -var="project_id=${_PROJECT_ID}" \
           -var="region=${_REGION}" \
           -var="bucket_name=${_BUCKET_NAME}"
-    volumeMounts:
-      - name: terraform-cache
-        path: /workspace/terraform
 
   # Paso 3: Subir los archivos estáticos al bucket
   - name: gcr.io/cloud-builders/gsutil
@@ -49,6 +43,3 @@ substitutions:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  volumes:
-    - name: terraform-cache
-      path: /workspace/terraform

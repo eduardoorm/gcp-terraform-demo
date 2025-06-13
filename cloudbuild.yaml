@@ -1,15 +1,17 @@
+options:
+  volumes:
+    - name: terraform-state
+      path: /workspace/terraform
+      
 steps:
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk  # tiene gcloud + gsutil
-    entrypoint: bash
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk  # solo para verificar
+    entrypoint: sh
     args:
       - -c
       - |
-        cd terraform
-        terraform init
-
         if gsutil ls -b gs://${_BUCKET_NAME} >/dev/null 2>&1; then
-          echo "Bucket ya existe. Importando a Terraform..."
-          terraform import google_storage_bucket.static_site ${_BUCKET_NAME} || echo "Ya estaba importado"
+          echo "Bucket ya existe"
+          echo "${_BUCKET_NAME}" > existing_bucket.txt
         fi
 
   - name: hashicorp/terraform:1.9.5
@@ -18,6 +20,10 @@ steps:
       - -c
       - |
         cd terraform
+        terraform init
+        if [ -f ../existing_bucket.txt ]; then
+          terraform import google_storage_bucket.static_site ${_BUCKET_NAME}
+        fi
         terraform apply -auto-approve \
           -var="project_id=${_PROJECT_ID}" \
           -var="region=${_REGION}" \
@@ -30,11 +36,3 @@ steps:
       - -r
       - site
       - gs://${_BUCKET_NAME}
-
-substitutions:
-  _PROJECT_ID: "proyecto-taller-github"
-  _REGION: "us-central1"
-  _BUCKET_NAME: "demo-web-estatica"
-
-options:
-  logging: CLOUD_LOGGING_ONLY

@@ -6,29 +6,44 @@
 </head>
 <body>
   <h1>🚀 ¡Buenas! Ya funcionó, menos mal. Esta es una web estática desplegada con Terraform y GCP.</h1>
+
   <form id="contact-form">
-  <input type="text" name="name" />
-  <textarea name="message"></textarea>
-  <button type="submit">Enviar</button>
+    <input type="text" name="name" placeholder="Tu nombre" required />
+    <br />
+    <textarea name="message" placeholder="Tu mensaje" required></textarea>
+    <br />
+    <button type="submit">Enviar</button>
   </form>
 
   <script>
-  document.getElementById('contact-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = {
-      name: e.target.name.value,
-      message: e.target.message.value
-    };
-  
-    await fetch('https://REGION-PROJECT.cloudfunctions.net/contactForm', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-  
-    alert('Mensaje enviado');
-  });
-  </script>
+    document.getElementById('contact-form').addEventListener('submit', async e => {
+      e.preventDefault();
 
+      const data = {
+        name: e.target.name.value,
+        message: e.target.message.value
+      };
+
+      try {
+        const response = await fetch('https://project-github-gcp-604652501199.us-central1.run.app', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al enviar el formulario');
+        }
+
+        const result = await response.json();
+        alert('✅ Mensaje enviado correctamente');
+      } catch (error) {
+        alert('❌ Hubo un error al enviar: ' + error.message);
+        console.error(error);
+      }
+    });
+  </script>
 </body>
 </html>
